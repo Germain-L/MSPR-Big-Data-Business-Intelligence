@@ -67,15 +67,19 @@ election_years = {
 }
 
 for year, num_candidates in election_years.items():
-    input_path = f"./extract/csv/{year}_tour_1.csv"
+    # Corrected input_path to point to the original CSV files location
+    input_path = f"./1-extract/csv/{year}_tour_1.csv"
     df_year = clean_election_data(year, num_candidates, input_path)
     all_years_data.append(df_year)
 
 # Combine all years into a single DataFrame
 df_all_years = pd.concat(all_years_data, ignore_index=True)
 
-# Optionally, save the combined DataFrame to a CSV file
-output_path = "./transform/export/all_years_combined.csv"
-df_all_years.to_csv(output_path, index=False)
+# print all unique candidate names
+print(df_all_years['Nom'].unique())
 
+# Optionally, save the combined DataFrame to a CSV file
+output_path = "./2-transform/elections/export/all_years_combined.csv"
+df_all_years.to_csv(output_path, index=False)
+  
 print("Combined data saved to:", output_path)
