@@ -3,11 +3,11 @@ import pandas as pd
 
 app = Flask(__name__)
 
-# Load unique commune names to improve performance
-# Ensure consistent string formatting by stripping leading/trailing whitespaces and converting to a common case (e.g., all lowercase)
-commune_names = pd.read_csv('predictions.csv', usecols=['Libellé de la commune'])
-commune_names['Libellé de la commune'] = commune_names['Libellé de la commune'].str.strip().str.lower()
-commune_names = commune_names.drop_duplicates().sort_values('Libellé de la commune')
+# Load the entire predictions data once to improve performance
+predictions = pd.read_csv('predicted_orientations_future.csv')
+predictions['Libellé de la commune'] = predictions['Libellé de la commune'].str.strip().str.lower()
+# Store unique commune names sorted for dropdown
+commune_names = predictions['Libellé de la commune'].drop_duplicates().sort_values()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -15,11 +15,6 @@ def index():
     predictions_html = ""
 
     if selected_commune:
-        print(f'Loading predictions for {selected_commune}...')
-        # Load the full dataset
-        predictions = pd.read_csv('predictions.csv')
-        predictions['Libellé de la commune'] = predictions['Libellé de la commune'].str.strip().str.lower()
-        
         # Filter data
         filtered_predictions = predictions[predictions['Libellé de la commune'] == selected_commune]
         if not filtered_predictions.empty:
@@ -28,7 +23,7 @@ def index():
             predictions_html = "<p>No data available for the selected commune.</p>"
             print(f"No data found for {selected_commune}")
 
-    return render_template('index.html', commune_names=commune_names['Libellé de la commune'].tolist(), predictions=predictions_html, selected_commune=selected_commune)
+    return render_template('index.html', commune_names=commune_names.tolist(), predictions=predictions_html, selected_commune=selected_commune)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -53,16 +53,26 @@ print(f'MSE: {mse}')
 
 # Predicting orientations for all data
 all_predictions = model.predict(X_scaled)
-predictions_df = pd.DataFrame({
-    geo_code_column: data_clean[geo_code_column],
-    commune_name_column: data_clean[commune_name_column],
-    'Orientation prédite': all_predictions
-})
+current_year = 2023  # Example current year
+future_years = [current_year + i for i in range(1, 4)]  # Next three years
+
+# Create DataFrame for each future year and concatenate them
+future_predictions_dfs = []
+for year in future_years:
+    df = pd.DataFrame({
+        geo_code_column: data_clean[geo_code_column],
+        commune_name_column: data_clean[commune_name_column],
+        'Year': year,
+        'Orientation prédite': all_predictions
+    })
+    future_predictions_dfs.append(df)
+
+final_predictions_df = pd.concat(future_predictions_dfs, ignore_index=True)
 
 # Save to CSV
-output_path = './4-modeling/predicted_orientations.csv'  # Define your desired output path for the CSV
-predictions_df.to_csv(output_path, index=False)
-print(f"Predictions saved to {output_path}")
+output_path = './4-modeling/predicted_orientations_future.csv'  # Define your desired output path for the CSV
+final_predictions_df.to_csv(output_path, index=False)
+print(f"Future predictions saved to {output_path}")
 
 # Print a preview of the DataFrame
-print(predictions_df.head())
+print(final_predictions_df.head())
