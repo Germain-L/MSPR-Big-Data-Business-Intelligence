@@ -4,59 +4,71 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
+import unidecode
+import re
 
-# Load the data
-data_path = './4-modeling/elections_33_clean.csv'  # Update this path to your actual CSV file location
+# Chargement des données à partir d'un fichier CSV
+data_path = './4-modeling/elections_33_clean.csv'
 data = pd.read_csv(data_path)
 
-# Remove columns with excessive missing values
+# Fonction pour nettoyer et standardiser les noms des communes
+def clean_commune_name(name):
+    if pd.isnull(name):
+        return name
+    # Suppression des accents, conversion en majuscules et suppression des espaces
+    name = unidecode.unidecode(name.strip().upper())
+    # Remplacement de ' & ' par '-ET-' avec gestion des espaces irréguliers
+    name = re.sub(r'\s*&\s*', '-ET-', name)
+    return name
+
+# Application de la fonction de nettoyage sur la colonne des noms de commune
+commune_name_column = 'Libellé de la commune'
+data[commune_name_column] = data[commune_name_column].apply(clean_commune_name)
+
+# Suppression des colonnes avec un nombre excessif de valeurs manquantes
 threshold = 0.5 * len(data)
 data_clean = data.dropna(thresh=threshold, axis=1)
 
-# Fill remaining missing values with the median for numeric columns
+# Remplissage des valeurs manquantes dans les colonnes numériques avec la médiane
 for column in data_clean.select_dtypes(include=[np.number]).columns:
     median_value = data_clean[column].median()
     data_clean[column].fillna(median_value, inplace=True)
 
-# Handle missing 'Orientation' column
+# Gestion de l'absence de la colonne 'Orientation'
 if 'Orientation' not in data_clean.columns:
     raise ValueError("The column 'Orientation' is missing from the dataset.")
-data_clean = data_clean.dropna(subset=['Orientation'])  # Removing rows where 'Orientation' is NaN
+data_clean = data_clean.dropna(subset=['Orientation'])  # Suppression des lignes où 'Orientation' est NaN
 
-# Define features based on the columns available in your dataset
+# Définition des caractéristiques pour le modèle basées sur les colonnes disponibles
 features = ['Pourcentage_Blancs_et_nuls', 'Pourcentage_Abstentions', 'Pourcentage_Votants', 'Voix'] + \
            [col for col in data_clean.columns if 'Age' in col or 'Prof' in col]
 
-# Geographic code and commune name columns
-geo_code_column = 'Code de la commune'
-commune_name_column = 'Libellé de la commune'
-
-# Preparing the dataset for modeling
+# Préparation des données pour la modélisation
 X = data_clean[features]
 y = data_clean['Orientation']
 
-# Standardize features
+# Normalisation des caractéristiques
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# Split data into training and test sets
+# Division des données en ensembles d'entraînement et de test
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-# Initialize and train RandomForestRegressor
+# Initialisation et entraînement du modèle RandomForestRegressor
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# Predict and calculate MSE
+# Prédiction et calcul de l'erreur quadratique moyenne (MSE)
 y_pred = model.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 print(f'MSE: {mse}')
 
-# Predicting orientations for all data
+# Prédictions pour toutes les données pour les années futures
 all_predictions = model.predict(X_scaled)
-current_year = 2023  # Example current year
-future_years = [current_year + i for i in range(1, 4)]  # Next three years
+current_year = 2023  # Année courante à titre d'exemple
+future_years = [current_year + i for i in range(1, 4)]  # Prévisions pour les trois prochaines années
 
-# Create DataFrame for each future year and concatenate them
+# Création d'un DataFrame pour chaque année future et leur concaténation
 future_predictions_dfs = []
 for year in future_years:
     df = pd.DataFrame({
@@ -69,10 +81,10 @@ for year in future_years:
 
 final_predictions_df = pd.concat(future_predictions_dfs, ignore_index=True)
 
-# Save to CSV
-output_path = './4-modeling/predicted_orientations_future.csv'  # Define your desired output path for the CSV
+# Sauvegarde des prédictions dans un fichier CSV
+output_path = './4-modeling/predicted_orientations_future.csv'
 final_predictions_df.to_csv(output_path, index=False)
 print(f"Future predictions saved to {output_path}")
 
-# Print a preview of the DataFrame
+# Affichage d'un aperçu du DataFrame
 print(final_predictions_df.head())
